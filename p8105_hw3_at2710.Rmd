@@ -14,6 +14,7 @@ library(p8105.datasets)
 library(janitor)
 library(knitr)
 library(ggridges)
+library(patchwork)
 
 knitr::opts_chunk$set(echo = TRUE,
   fig.width = 6,
@@ -66,13 +67,13 @@ health_overall %>% filter(year %in% c(2002, 2006, 2010) &
 For each year and state, compute the average proportion in each response category (taking the average across locations in a state). 
 
 ```{r average_}
-health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion = mean(data_value)) %>% kable(digits = 2)
+health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion = mean(data_value, na.rm = TRUE)) %>% kable(digits = 2)
 ```
 
 Make a five-panel plot that shows, for each response category separately, the distribution of these state-level averages over time.
 
 ```{r}
-health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion = mean(data_value)) %>% ggplot(aes(x = year, y = mean_proportion, color = state)) + geom_line() + 
+health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion = mean(data_value, na.rm = TRUE)) %>% ggplot(aes(x = year, y = mean_proportion, color = state)) + geom_line() + 
   facet_wrap(. ~ response) + theme(legend.position = "none")
 ```
 
@@ -81,15 +82,48 @@ health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion
 
 ## Problem 2
 
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
-
-How many aisles are there, and which aisles are the most items ordered from?
-Make a plot that shows the number of items ordered in each aisle. Order aisles sensibly, and organize your plot so others can read it.
-Make a table showing the most popular item aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
-Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
-
 ```{r pressure, echo=FALSE}
-plot(pressure)
+data("instacart")
+```
+**Answer**: The original dataset consists of `r nrow(instacart)` observations and `r ncol(instacart)` variables with details on the items customers buy on instacart website, including the time of the purchase and the duration from the last purchase at the store. The data is gathered from `r length(unique(instacart$user_id))` unique customers and the type of products with the highest purchase volume is `r names(sort(table(instacart$department), decreasing = TRUE)[1])` (`r round(sort(table(instacart$department), decreasing = TRUE)[1]*100/nrow(instacart),2)`% of the total volume). Among the  `r names(sort(table(instacart$department), decreasing = TRUE)[1])` category, here are the top 5 best selling items.
+
+```{r top_five}
+instacart %>% filter(department == 'produce') %>% count(product_name) %>% top_n(5) %>% kable()
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The average number of items in each purchase is `r instacart %>% count(order_id) %>% summarise(mean = round(mean(n),1))`. We further look into what time of day customers usually place their order. And surprisingly, the orders mostly come in during 10am to 3pm, so people spend their working hours on buying groceries online!
+
+```{r}
+instacart %>% group_by(order_id) %>% count(order_hour_of_day) %>% ggplot(aes(order_hour_of_day)) + geom_histogram(binwidth = 0.4) + xlab('Hour of the day')
+```
+
+How many aisles are there, and which aisles are the most items ordered from?
+
+**Answer**: There are `r length(table(instacart$aisle_id))` aisles and with aisle `r names(sort(table(instacart$aisle_id), decreasing = TRUE)[1])` having `r sort(table(instacart$aisle_id), decreasing = TRUE)[1]` items ordered from. ps. Aisle 83 is fresh vegetables so it makes sense that people would buy from this aise the most often given the short shelf life.
+
+Make a plot that shows the number of items ordered in each aisle. Order aisles sensibly, and organize your plot so others can read it.
+
+```{r}
+plot1 <-
+  instacart %>% filter(aisle_id < 70) %>%  ggplot(aes(aisle_id)) + geom_histogram(binwidth = 0.9) + coord_flip() + xlab('Aisle ID') + scale_x_continuous(breaks =
+  seq(0, 69, 5))
+  plot2 <-
+  instacart %>% filter(aisle_id >= 70) %>%  ggplot(aes(aisle_id)) + geom_histogram(binwidth = 0.9) + coord_flip() + xlab('') + scale_x_continuous(breaks =
+  seq(70, 134, 5))
+  plot1 + plot2
+```
+
+**Answer**: From the plot, we can see there are 4 aisles with the item counts exceed 50,000 units.(see table below). Again, these perishables have short shelf life and require more frequent re-orderings. 
+```{r}
+instacart %>% count(aisle) %>% filter(n > 50000) %>% kable()
+```
+
+
+Make a table showing the most popular item aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”
+
+```{r}
+instacart %>% filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% group_by(aisle) %>%  count(product_name) %>% top_n(1) %>% kable()
+```
+
+
+Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
