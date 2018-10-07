@@ -15,6 +15,7 @@ library(janitor)
 library(knitr)
 library(ggridges)
 library(patchwork)
+library(lubridate)
 
 knitr::opts_chunk$set(echo = TRUE,
   fig.width = 6,
@@ -23,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE,
 )
 ```
 
-## Problem 1
+# Problem 1
 
 ```{r brfss}
 data("brfss_smart2010")
@@ -80,7 +81,7 @@ health_overall %>% group_by(year, state, response) %>% summarise(mean_proportion
 **Answer**: The majority of respondents give themselves a very good health and it has been consistent across the years and those rated themselves with poor health are the minority in every state and throughout the years 2002 to 2010.
 
 
-## Problem 2
+# Problem 2
 
 ```{r pressure, echo=FALSE}
 data("instacart")
@@ -127,3 +128,54 @@ instacart %>% filter(aisle %in% c("baking ingredients", "dog food care", "packag
 
 
 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+
+```{r}
+instacart %>% filter(product_name %in% c('Pink Lady Apples', 'Coffee Ice Cream')) %>% group_by(product_name, order_dow) %>% summarise(mean_hour = round(mean(order_hour_of_day),1)) %>% spread(key = order_dow, value = mean_hour) %>% kable() 
+```
+
+**Answer** On most days of the week, people tend to purchase pink lady apples around noon while the coffee ice cream is usually ordered a little later, around early afternoon. ps. I was trying to find what each number of the variable 'order_dow' represents what day but couldn't find credible data dictionary (see link attached)
+https://gist.github.com/jeremystan/c3b39d947d9b88b3ccff3147dbcf6c6b 
+
+
+# Problem 2
+This problem uses the NY NOAA data. DO NOT include this dataset in your local data directory; instead, load the data from the  p8105.datasets package (it’s called ny_noaa).
+```{r problem_3, echo = FALSE}
+data("ny_noaa")
+cleaned_dat <-
+  ny_noaa %>% filter(!(
+  is.na(prcp) &
+  is.na(snow) & is.na(snwd) & is.na(tmax) & is.na(tmin)
+  )) %>%
+  mutate(
+  tmax = (as.numeric(tmax) / 10)*(9/5) + 32,
+  tmin = (as.numeric(tmin) / 10)*(9/5) + 32,
+  prcp = prcp / 254,
+  snwd = snwd / 25.4,
+  year = year(date),
+  month = month(date),
+  day = day(date),
+  snow = snow / 25.4
+  )
+# separate(date, into = c("year", "month", "day"), sep="-") #output as chr
+```
+
+**Answer**: This is the weather data, with `r nrow(ny_noaa)` observations, which consists of daily information on precipition, snow and temperature from various locations. It's in a long format and hasn't been tidied since there are rows with no information on the weather. Thus we removed those observations with no data (`r ny_noaa %>% filter(is.na(prcp) & is.na(snow) & is.na(snwd) & is.na(tmax) & is.na(tmin)) %>% nrow()` rows) and ended up with the final dataset with `r nrow(cleaned_dat)` observations. The data comes from 747 unique weather stations in NY from year 1981 to 2010. There are a lot of missing data observed in the dataset particularly the tmax and tmin (`r round(100*sum(is.na(cleaned_dat$tmax))/nrow(cleaned_dat),0)`%). Another variable with dubious input is snow given there is one record, dated `r cleaned_dat %>% filter(snow < 0) %>% select(date)`, that shows the amount of snow in negative (`r cleaned_dat %>% filter(snow < 0) %>% select(snow)`). 
+
+For snowfall, what are the most commonly observed values? Why?
+
+**Answer**: It's `r names(sort(-table(cleaned_dat$snow)))[1]` since snow doesn't fall all year round, just during the winter season.
+
+Make a two-panel plot showing the average temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r}
+cleaned_dat %>% group_by(month, year, id) %>% summarise(tmax_avg = mean(tmax, na.rm = TRUE),
+  tmin_avg = mean(tmin, na.rm = TRUE)) %>% filter(month %in% c(1, 7)) %>% mutate(month_name = month.name[month]) %>% gather(key = max_min, value = temp, tmax_avg:tmin_avg) %>% ggplot(aes(x = year, y = temp, color = max_min)) + geom_jitter() +  facet_grid(. ~ month_name) + ylab('Temperature') + scale_color_manual(
+  name = "",
+  labels = c("Average Max",
+  "Average Min"),
+  values = c('tmax_avg' = 'red', 'tmin_avg' = 'blue')
+  )
+```
+
+Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
