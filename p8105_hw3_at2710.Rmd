@@ -160,7 +160,7 @@ cleaned_dat <-
 # separate(date, into = c("year", "month", "day"), sep="-") #output as chr
 ```
 
-**Answer**: This is the weather data, with `r nrow(ny_noaa)` observations, which consists of daily information on precipition, snow and temperature from various locations. It's in a long format and hasn't been tidied since there are rows with no information on the weather. Thus we removed those observations with no data (`r ny_noaa %>% filter(is.na(prcp) & is.na(snow) & is.na(snwd) & is.na(tmax) & is.na(tmin)) %>% nrow()` rows) and ended up with the final dataset with `r nrow(cleaned_dat)` observations. The data comes from 747 unique weather stations in NY from year 1981 to 2010. There are a lot of missing data observed in the dataset particularly the tmax and tmin (`r round(100*sum(is.na(cleaned_dat$tmax))/nrow(cleaned_dat),0)`%). Another variable with dubious input is snow given there is one record, dated `r cleaned_dat %>% filter(snow < 0) %>% select(date)`, that shows the amount of snow in negative (`r cleaned_dat %>% filter(snow < 0) %>% select(snow)`). 
+**Answer**: This is the weather data, with `r nrow(ny_noaa)` observations, which consists of daily information on precipition, snow and temperature from various locations. It's in a long format and hasn't been tidied since there are rows with no information on the weather. Thus we removed those observations with no data (`r ny_noaa %>% filter(is.na(prcp) & is.na(snow) & is.na(snwd) & is.na(tmax) & is.na(tmin)) %>% nrow()` rows) and ended up with the final dataset with `r nrow(cleaned_dat)` observations. The data comes from 747 unique weather stations in NY from year 1981 to 2010. There are a lot of missing data observed in the dataset particularly the tmax and tmin (`r round(100*sum(is.na(cleaned_dat$tmax))/nrow(cleaned_dat),0)`%). Another variable with dubious input is snow given there is one record, dated `r cleaned_dat %>% filter(snow < 0) %>% select(date)`, that shows the amount of snow in negative (`r round(cleaned_dat %>% filter(snow < 0) %>% select(snow),1)`). 
 
 For snowfall, what are the most commonly observed values? Why?
 
@@ -170,13 +170,15 @@ Make a two-panel plot showing the average temperature in January and in July in 
 
 ```{r warning = FALSE}
 cleaned_dat %>% group_by(month, year, id) %>% summarise(tmax_avg = mean(tmax, na.rm = TRUE),
-  tmin_avg = mean(tmin, na.rm = TRUE)) %>% filter(month %in% c(1, 7)) %>% mutate(month_name = month.name[month]) %>% gather(key = max_min, value = temp, tmax_avg:tmin_avg) %>% ggplot(aes(x = year, y = temp, color = max_min)) + geom_jitter() +  facet_grid(. ~ month_name) + ylab('Temperature') + xlab('Year') + scale_color_manual(
+  tmin_avg = mean(tmin, na.rm = TRUE)) %>% filter(month %in% c(1, 7)) %>% mutate(month_name = month.name[month]) %>% gather(key = max_min, value = temp, tmax_avg:tmin_avg) %>% ggplot(aes(x = year, y = temp, color = max_min)) + geom_jitter() + geom_smooth() +  facet_grid(. ~ month_name) + ylab('Temperature') + xlab('Year') + scale_color_manual(
   name = "",
   labels = c("Average Max",
   "Average Min"),
-  values = c('tmax_avg' = 'red', 'tmin_avg' = 'blue')
+  values = c('tmax_avg' = 'firebrick2', 'tmin_avg' = 'steelblue2')
   )
 ```
+
+**Answer**:Clearly the average min and max temperature in July are higher than those in January. Also, there seems to be more variability, across stations, in average min/max temperature in January compared to July; there are a lot of overlap between some locations' average max and min temperature in January while there's a clear break of min/max temperature across locations in July. In January, there are some locations with extremely low average min temperature. In the year `r cleaned_dat %>% group_by(month, year, id) %>% summarise(tmax_avg = mean(tmax, na.rm = TRUE), tmin_avg = mean(tmin, na.rm = TRUE)) %>% filter(month == 1) %>% arrange(tmin_avg) %>% ungroup() %>% slice(1) %>% select(year)`, one location was recorded with average minimum temperature of `r cleaned_dat %>% group_by(month, year, id) %>% summarise(tmax_avg = mean(tmax, na.rm = TRUE), tmin_avg = mean(tmin, na.rm = TRUE)) %>% filter(month == 1) %>% arrange(tmin_avg) %>% ungroup() %>% slice(1) %>% select(tmin_avg)` degrees, the lowest average ever recorded in this dataset. We also noticed that the average temperatures are lower than usual in January 1994.
 
 Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year. 
 
