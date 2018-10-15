@@ -119,6 +119,7 @@ Make a table showing the most popular item aisles “baking ingredients”, “d
 ```{r}
 instacart %>% filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% group_by(aisle) %>%  count(product_name) %>% top_n(1) %>% kable()
 ```
+
 **Answer**:Since I don't bake nor do I own dog I don't know if it makes sense for the light brown sugar and the chicken and rice recipe dog treats to be the best seller. But I agree that baby spinach deserves its place in the packaged veggies/fruits section. 
 
 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
