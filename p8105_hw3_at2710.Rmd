@@ -191,4 +191,4 @@ plot_b <- cleaned_dat %>% filter(snow > 0 & snow < 100/25.4) %>% ggplot(aes(x = 
 plot_a + plot_b + plot_layout(ncol = 1, heights = c(1, 2))
 ```
 
-**Answer**: The key takeaways from these figures are the temperature measured in New York has been climbing from 1990 to 2010. For the snowfall plot, It shows that each year, most of the time when it snows (between 0 and 4 inches), it usually does less than an inch.
+**Answer**: The key takeaways from these figures are the temperature measured in New York has been climbing from 1990 to 2010. For the snowfall plot, It shows that each year, most of the time when it snows (between 0 and 4 inches), it usually does less than an inch. Also we noticed the peak around 1, 2 and 3 inches; this is probably due to the rounding up of the numbers reported.
